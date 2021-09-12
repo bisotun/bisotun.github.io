@@ -1,0 +1,161 @@
+<html>
+<style>
+form {
+/* Center the form on the page */
+margin: 0 auto;
+width: 640px;
+height: 320px;
+/* Form outline */
+padding: 1em;
+border: 1px solid #CCC;
+border-radius: 1em;
+}
+
+ul {
+list-style: none;
+padding: 0;
+margin: 0;
+}
+
+form li + li {
+margin-top: 1em;
+}
+
+label {
+/* Uniform size & alignment */
+display: inline-block;
+width: 320px;
+text-align: left;
+}
+
+input,
+textarea {
+/* To make sure that all text fields have the same font settings
+By default, textareas have a monospace font */
+font: 1em sans-serif;
+
+/* Uniform text field size */
+width: 640px;
+/*box-sizing: border-box;*/
+
+/* Match form field borders */
+border: 1px solid #999;
+}
+
+input:focus,
+textarea:focus {
+/* Additional highlight for focused elements */
+border-color: #000;
+}
+
+textarea {
+/* Align multiline text fields with their labels */
+vertical-align: top;
+
+/* Provide space to type some text */
+height: 5em;
+}
+
+.button {
+/* Align buttons with the text fields */
+padding-left: 90px; /* same size as the label elements */
+}
+
+button {
+/* This extra margin represent roughly the same space as the space
+between the labels and their text fields */
+margin-left: .5em;
+bkgcolor: Red;
+}
+</style>
+<script>
+function udml2xmla() {
+document.getElementById("udml").value = "dvxdvxv";
+}
+</script>
+<form action="/my-handling-form-page" method="post">
+<label for="msg">Put your UDML code here:</label>
+<textarea id="udml" name="UDML"></textarea>
+<br>
+<br>
+<center><button type="button" onclick="udml2xmla()">Big Red Button</button></center>
+<br>
+<label for="msg">Get you XMLA code from here:</label>
+<textarea id="xmla" name="XMLA"></textarea>
+<br>
+<br>
+<center><button type="button" onclick="copyxmla()">Copy to clipboard</button></center>
+</form>
+<script>
+function udml2xmla() {
+var textudml=document.getElementById("udml").value;
+var textxmla="";
+var xmlalines = [];
+var k=1;
+var xmlaout = [];
+var rowcount=1;
+var startstr1=1;
+var endstr1=7;
+var startstr2=1;
+var endstr2=7;
+var tempstr="";
+var dbname="";
+
+t=textudml.split(/\n/);
+for (let i = 0; i < t.length; i++) {
+xmlalines[i] = ""
+if(t[i].startsWith('DECLARE LOGICAL TABLE "')){
+startstr1=t[i].indexOf('"')+1;
+endstr1=t[i].indexOf('"."');
+startstr2=t[i].indexOf('AS "')+4;
+endstr2=t[i].lastIndexOf('"');
+xmlalines[i] = '{"createOrReplace":{"object":{"database":"'+t[i].substring(startstr1,endstr1)+'","table":"'+t[i].substring(startstr2,endstr2)+'"},"table":{"name": "'+t[i].substring(startstr2,endstr2)+'",';
+dbname=t[i].substring(startstr1,endstr1);
+}
+if(t[i].trim().startsWith('SOURCES (')){
+xmlalines[i] = '"partitions":[';
+}
+if(t[i].trim().endsWith(') NO INTERSECTION ATTRIBUTES')){
+startstr1=t[i].lastIndexOf('"."')+3;
+endstr1=t[i].lastIndexOf('"');
+xmlalines[i] = '{"name": "'+t[i].substring(startstr1,endstr1)+'","mode": "import","source": {"type": "query","query": "SELECT * FROM '+t[i].substring(startstr1,endstr1)+'"}}],"columns":[';
+}
+if(t[i].startsWith('DECLARE ATTRIBUTE "')){
+startstr1=t[i].lastIndexOf('"."')+3;
+endstr1=t[i].lastIndexOf('"');
+startstr2=t[i].indexOf('AS "')+4;
+endstr2=t[i].indexOf('" ATTRIBUTE MAP EXPRESSION');
+xmlalines[i] = '{"name": "'+t[i].substring(startstr2,endstr2)+'","dataType": "string","sourceColumn":"'+t[i].substring(startstr1,endstr1)+'"},';
+}
+if(t[i].trim().startsWith('DECLARE LOGICAL SOURCE FOLDER')){
+xmlalines[i] = ']}}},';
+}
+}
+xmlaout[0]='{"createOrReplace":{"object":{"database":"'+dbname+'"},"database":{"name":"'+dbname+'","compatibilityLevel":1400,"model":{}}}},';
+for (let i = 0; i < t.length; i++) {
+if(xmlalines[i] != ""){
+xmlaout[k]=xmlalines[i];
+k++;
+}
+}
+for (let i = 0; i < xmlaout.length; i++) {
+if(xmlaout[i] == "]}}},"){
+tempstr=xmlaout[i-1].substring(0,xmlaout[i-1].lastIndexOf(","));
+xmlaout[i-1]=tempstr;
+}
+}
+tempstr=xmlaout[k-1].substring(0,xmlaout[k-1].lastIndexOf(","));
+xmlaout[k-1]=tempstr;
+//xmlaout[k]=']}}'
+textxmla=xmlaout.join('\n');
+document.getElementById("xmla").value=textxmla;
+
+}
+
+function copyxmla() {
+var copyx=document.getElementById("xmla").value;
+navigator.clipboard.writeText(copyx);
+}
+</script>
+
+</html>
